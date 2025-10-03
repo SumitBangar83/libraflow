@@ -1,32 +1,49 @@
-import Attendance from '../models/Attendance';
-import Slot from '../models/Slot';
+import Attendance from '../models/Attendance.js';
+import Slot from '../models/Slot.js';
+import mongoose from 'mongoose';
 // @desc    Check-in a user
 // @route   POST /api/attendance/checkin
 // @access  Private
 const checkIn = async (req, res) => {
-    const { slotId } = req.body;
+    const { id, studentId, action, timeStamp, location, qrData, slot } = req.body;
+    console.log(id)
+    console.log(new mongoose.Types.ObjectId(id))
     try {
-        const slot = await Slot.findById(slotId);
+        {/**  const slot = await Slot.findById(slotId);
         if (!slot || !slot.isActive) {
             return res.status(400).json({ message: 'Invalid or inactive slot' });
         }
+            */}
 
         // Check if user is already checked in
-        const existingAttendance = await Attendance.findOne({ user: req.user._id, checkOutTime: null });
+
+        const existingAttendance = await Attendance.findOne({ user: new mongoose.Types.ObjectId(id), checkOutTime: null });
+
         if (existingAttendance) {
             return res.status(400).json({ message: 'User is already checked in' });
         }
 
         const attendance = new Attendance({
-            user: req.user._id,
-            slot: slotId,
-            date: new Date().setHours(0,0,0,0) // Store date only
+            user: id,
+            slot: slot,
+            date: new Date().setHours(0, 0, 0, 0), // Store date only
+            checkInTime: timeStamp,
+            action: action,
+            location: location,
+            student: { email: studentId }
+
         });
 
         const newAttendance = await attendance.save();
-        res.status(201).json(newAttendance);
+        res.status(201).json({ success: true, data: newAttendance });
+        const result = await Attendance.find({ user: id });
+        if (result.length > 1) {
+            const result = await Attendance.deleteMany({ user: id });
+            const newAttendance = await attendance.save();
+        }
 
     } catch (error) {
+        console.log(error.message)
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
@@ -35,15 +52,26 @@ const checkIn = async (req, res) => {
 // @route   POST /api/attendance/checkout
 // @access  Private
 const checkOut = async (req, res) => {
+    const id = req.params;
+    const { action } = req.body;
+
     try {
-        const attendance = await Attendance.findOne({ user: req.user._id, checkOutTime: null });
+        const existingAttendance = await Attendance.findOne({ user: new mongoose.Types.ObjectId(id.id), checkOutTime: null });
+
+        if (existingAttendance) {
+            return res.status(400).json({ message: 'User is already checked in' });
+        }
+
+        const attendance = await Attendance.findOne({ user: id.id, checkOutTime: null });
         if (!attendance) {
             return res.status(400).json({ message: 'User is not checked in' });
         }
 
         attendance.checkOutTime = new Date();
+        attendance.action = action;
         const updatedAttendance = await attendance.save();
-        res.json(updatedAttendance);
+        res.status(201).json({ success: true, data: updatedAttendance });
+
 
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
@@ -71,13 +99,13 @@ const getAttendanceHistory = async (req, res) => {
 // @access  Private/Admin
 const getLiveAttendance = async (req, res) => {
     try {
-        const liveUsers = await Attendance.find({ checkOutTime: null })
-            .populate('user', 'name email')
-            .populate('slot', 'name');
-        res.json(liveUsers);
+        const liveUsers = await Attendance.find();
+       
+
+        res.json({ success: true, data: liveUsers });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-export default { checkIn, checkOut, getAttendanceHistory, getLiveAttendance };
+export { checkIn, checkOut, getAttendanceHistory, getLiveAttendance };

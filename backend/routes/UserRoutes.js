@@ -12,7 +12,7 @@ import { protect, admin } from '../middleware/authMiddleware.js';
 router.get('/', protect, admin, getAllUsers);
 
 // User can get and update their own profile
-router.route('/profile')
+router.route('/profile/:id')
     .get(protect, getUserProfile)
     .put(protect, updateUserProfile);
 

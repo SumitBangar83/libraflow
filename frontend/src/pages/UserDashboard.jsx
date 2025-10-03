@@ -9,13 +9,15 @@ import {
     FiCalendar,
     FiBarChart2
 } from 'react-icons/fi';
+import { useSelector } from 'react-redux';
 
 const UserDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
+    const user = useSelector((state) => state.user.value)
 
     // Mock data
     const userData = {
-        name: 'Alex Johnson',
+        name: user.name,
         membership: 'Premium',
         joinDate: '2023-01-15',
         booksBorrowed: 24,

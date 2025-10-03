@@ -2,7 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { QrReader } from 'react-qr-reader'
-import { FiCamera, FiCheckCircle, FiClock, FiMapPin, FiLogIn, FiLogOut } from 'react-icons/fi';
+import { FiCamera, FiCheckCircle, FiClock, FiMapPin, FiLogIn, FiLogOut, FiX } from 'react-icons/fi';
+import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
+import { attendanceinfo } from '../features/attendance';
+import { userinfo } from '../features/userinfo';
+const url = import.meta.env.VITE_API_URL;
 
 const QRCheckIn = () => {
     const [scanResult, setScanResult] = useState('');
@@ -10,17 +15,18 @@ const QRCheckIn = () => {
     const [attendanceStatus, setAttendanceStatus] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
     const [currentTimeSlot, setCurrentTimeSlot] = useState(null);
-    const [actionType, setActionType] = useState('checkin'); // 'checkin' or 'checkout'
+    const [actionType, setActionType] = useState(''); // 'checkin' or 'checkout'
     const [userData, setUserData] = useState(null);
-    const [libraryLocation, setLibraryLocation] = useState({
-        lat: 28.6129, // Example library coordinates
-        lng: 77.2295
-    });
+    const [cameraActive, setCameraActive] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false); // Add processing flag
+    const qrReaderRef = useRef(null);
+    const dispatch = useDispatch()
+    const user = useSelector((state) => state.user.value)
 
     // Library location settings (would come from admin panel)
     const LIBRARY_LOCATION = {
-        lat: 28.6129,
-        lng: 77.2295,
+        lat: 22.7634, // Example library coordinates
+        lng: 75.8657,
         radius: 100 // meters
     };
 
@@ -43,12 +49,17 @@ const QRCheckIn = () => {
         if (token) {
             // Decode token and get user data
             setUserData({
-                id: '123',
-                name: 'John Doe',
+                id: user._id,
+                name: user.name,
                 studentId: 'STU2024001',
-                email: 'john@student.com'
+                email: user.email
             });
         }
+
+        // Cleanup function to stop camera when component unmounts
+        return () => {
+            stopCamera();
+        };
     }, []);
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -74,66 +85,122 @@ const QRCheckIn = () => {
         return distance <= LIBRARY_LOCATION.radius;
     };
 
+    const stopCamera = () => {
+        setCameraActive(false);
+        setIsScanning(false);
+        setIsProcessing(false); // Reset processing flag
+    };
+
     const handleScan = (result) => {
-        if (result && !scanResult) {
+        console.log("Scan result:", result);
+
+        // Prevent multiple scans and processing
+        if (result && !scanResult && !isProcessing) {
             setScanResult(result.text);
+            setIsProcessing(true); // Set processing flag to prevent duplicate scans
             setIsScanning(false);
+            setCameraActive(false); // Turn off camera after successful scan
             processAttendance(result.text);
         }
     };
 
     const processAttendance = async (qrData) => {
         try {
+
             // Verify QR data contains library information
             const qrInfo = JSON.parse(qrData);
-            console.log(qrInfo)
-
-            if (qrInfo.type !== 'library_qr') {
-                throw new Error('Invalid QR code');
-            }
-
-            // Check location
-            if (!isWithinLibrary()) {
-                setAttendanceStatus({
-                    success: false,
-                    message: 'You must be within library premises to check in/out'
-                });
+            console.log("Processing attendance:", qrInfo);
+            if (qrInfo.name != "admin lala") {
+                setAttendanceStatus({ success: false, message: 'check you are in correct library' })
                 return;
             }
 
-            // Send attendance data to backend
-            const response = await fetch('/api/attendance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    studentId: userData.studentId,
+            if (actionType === 'checkin') {
+                // Check location only for checkin
+                if (!isWithinLibrary()) {
+                    setAttendanceStatus({
+                        success: false,
+                        message: 'You must be within library premises to check in'
+                    });
+                    setIsProcessing(false); // Reset processing flag
+                    return;
+                }
+
+                const obj = {
+                    id: user,
+                    studentId: user.email,
                     action: actionType,
                     timestamp: new Date().toISOString(),
                     location: userLocation,
-                    qrData: qrInfo
-                })
-            });
+                    qrData: qrInfo,
+                    slot: 'afternoon'
+                }
 
-            const result = await response.json();
+                // Send attendance data to backend
+                const response = await axios.post(`${url}attendance/checkin`, obj, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                });
 
-            setAttendanceStatus(result);
+                if (response.data.success) {
+                    setAttendanceStatus({
+                        success: true,
+                        currentStatus: 'checkedin',
+                        timeRemaining: 600000,
+                        message: 'Successfully checked in!'
+                    });
+                    const result = await axios.get(`${url}attendance/live`);
+                    if (result.data.success) {
+                        dispatch(attendanceinfo({ data: result.data.data, user: user }));
+                    }
+                    // If check-in successful, set timeout for notification
+                    setTimeout(() => {
+                        console.log('Time slot ending soon notification');
+                    }, 600000);
+                }
 
-            // If check-in successful, set timeout for notification
-            if (result.success && actionType === 'checkin') {
-                setTimeout(() => {
-                    // Send notification (this would be handled by backend)
-                    console.log('Time slot ending soon notification');
-                }, result.timeRemaining);
+            } else if (actionType === 'checkout') {
+                const obj = {
+                    id: user,
+                    studentId: user.email,
+                    action: actionType,
+                    timestamp: new Date().toISOString(),
+                    location: userLocation,
+                    qrData: qrInfo,
+                    slot: 'afternoon'
+                }
+
+                const response = await axios.post(`${url}attendance/checkout/${user._id}`, obj, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                });
+
+                if (response.data.success) {
+                    setAttendanceStatus({
+                        success: true,
+                        currentStatus: 'checkout',
+                        message: 'Successfully checked out!'
+                    });
+                    const result = await axios.get(`${url}attendance/live`);
+                    if (result.data.success) {
+                        dispatch(attendanceinfo({ data: result.data.data, user: user }));
+                    }
+                }
             }
 
         } catch (error) {
+            console.log("Error:", error.message);
             setAttendanceStatus({
                 success: false,
-                message: 'Error processing attendance: ' + error.message
+                message: 'Error processing attendance: ' + (error.response?.data?.message || error.message)
             });
+        } finally {
+            // Always reset processing flag
+            setIsProcessing(false);
         }
     };
 
@@ -141,13 +208,21 @@ const QRCheckIn = () => {
         setActionType(type);
         setScanResult('');
         setIsScanning(true);
+        setCameraActive(true);
         setAttendanceStatus(null);
+        setIsProcessing(false); // Reset processing flag when starting new scan
+    };
+
+    const cancelScanning = () => {
+        stopCamera();
+        setScanResult('');
+        setAttendanceStatus(null);
+        setIsProcessing(false);
     };
 
     const resetScanner = () => {
-        setIsScanning(false);
-        setScanResult('');
-        setAttendanceStatus(null);
+        cancelScanning();
+        setActionType(''); // Reset action type
     };
 
     return (
@@ -166,20 +241,22 @@ const QRCheckIn = () => {
                 <div className="flex gap-4 mb-6 justify-center">
                     <button
                         onClick={() => startScanning('checkin')}
+                        disabled={isScanning || isProcessing}
                         className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${actionType === 'checkin'
                             ? 'bg-[#2EA86A] text-white'
                             : 'bg-gray-200 text-gray-700'
-                            }`}
+                            } ${(isScanning || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <FiLogIn className="mr-2" />
                         Check In
                     </button>
                     <button
                         onClick={() => startScanning('checkout')}
+                        disabled={isScanning || isProcessing}
                         className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${actionType === 'checkout'
                             ? 'bg-[#E04F5F] text-white'
                             : 'bg-gray-200 text-gray-700'
-                            }`}
+                            } ${(isScanning || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <FiLogOut className="mr-2" />
                         Check Out
@@ -195,50 +272,83 @@ const QRCheckIn = () => {
                     >
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-xl font-semibold text-[#16212A]">
-                                {actionType === 'checkin' ? 'Check In' : 'Check Out'}
+                                {actionType === 'checkin' ? 'Check In' : actionType === 'checkout' ? 'Check Out' : 'Select Action'}
                             </h2>
-                            <FiCamera className="text-[#84C18B] text-2xl" />
+                            <div className="flex items-center gap-2">
+                                {cameraActive && (
+                                    <div className="flex items-center gap-1 text-green-600">
+                                        <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                                        <span className="text-xs">Camera Active</span>
+                                    </div>
+                                )}
+                                {isProcessing && (
+                                    <div className="flex items-center gap-1 text-blue-600">
+                                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                                        <span className="text-xs">Processing...</span>
+                                    </div>
+                                )}
+                                <FiCamera className={`text-2xl ${cameraActive ? 'text-[#84C18B]' : 'text-gray-400'}`} />
+                            </div>
                         </div>
 
-                        {isScanning ? (
+                        {isScanning && cameraActive ? (
                             <div className="relative">
-                                <QrReader
-                                    constraints={{ facingMode: 'environment' }}
-                                    onResult={handleScan}
-                                    className="rounded-lg overflow-hidden"
-                                />
-                                <div className="absolute inset-0 border-2 border-[#84C18B] rounded-lg m-4 pointer-events-none"></div>
-                                <div className="text-center mt-2">
-                                    <p className="text-sm text-gray-600">Scan library QR code</p>
+                                <div className="relative rounded-lg overflow-hidden">
+                                    <QrReader
+                                        ref={qrReaderRef}
+                                        constraints={{ facingMode: 'environment' }}
+                                        onResult={handleScan}
+                                        className="w-full"
+                                        scanDelay={500} // Add delay between scans
+                                    />
+                                    <div className="absolute inset-0 border-2 border-[#84C18B] rounded-lg m-4 pointer-events-none"></div>
+                                </div>
+                                <div className="text-center mt-4">
+                                    <p className="text-sm text-gray-600 mb-2">Scan library QR code</p>
+                                    <button
+                                        onClick={cancelScanning}
+                                        disabled={isProcessing}
+                                        className="flex items-center justify-center gap-2 mx-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <FiX className="text-lg" />
+                                        Cancel Scan
+                                    </button>
                                 </div>
                             </div>
                         ) : (
                             <div className="text-center py-12">
-                                <div className={`text-6xl mx-auto mb-4 ${attendanceStatus?.success ? 'text-[#2EA86A]' : 'text-[#E04F5F]'
-                                    }`}>
-                                    {attendanceStatus?.success ? <FiCheckCircle /> : '⚠️'}
+                                <div className={`text-6xl mx-auto mb-4 ${attendanceStatus?.success ? 'text-[#2EA86A]' : attendanceStatus ? 'text-[#E04F5F]' : 'text-gray-400'}`}>
+                                    {attendanceStatus?.success ? <FiCheckCircle /> : attendanceStatus ? '⚠️' : <FiCamera />}
                                 </div>
-                                <p className="text-[#16212A] font-medium">
-                                    {attendanceStatus ? attendanceStatus.message : 'Ready to scan'}
+                                <p className="text-[#16212A] font-medium mb-4">
+                                    {attendanceStatus ? attendanceStatus.message : actionType ? 'Ready to scan' : 'Please select check in or check out'}
                                 </p>
+                                {isProcessing && (
+                                    <div className="mt-4">
+                                        <p className="text-blue-600 font-medium">Processing your request...</p>
+                                    </div>
+                                )}
+                                {attendanceStatus && (
+                                    <div className="mt-4">
+                                        <button
+                                            onClick={resetScanner}
+                                            className="px-6 py-2 bg-[#84C18B] text-white rounded-lg font-medium hover:bg-[#76b082] transition-colors"
+                                        >
+                                            Scan Again
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         <div className="flex gap-2 mt-4">
-                            {!isScanning && !attendanceStatus && (
+                            {!isScanning && !attendanceStatus && actionType && (
                                 <button
                                     onClick={() => startScanning(actionType)}
-                                    className="flex-1 bg-[#84C18B] text-white py-3 rounded-lg font-medium hover:bg-[#76b082] transition-colors"
+                                    disabled={isProcessing}
+                                    className="flex-1 bg-[#84C18B] text-white py-3 rounded-lg font-medium hover:bg-[#76b082] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Start Scanning
-                                </button>
-                            )}
-                            {(isScanning || attendanceStatus) && (
-                                <button
-                                    onClick={resetScanner}
-                                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                                >
-                                    {attendanceStatus ? 'Scan Again' : 'Cancel'}
+                                    {isProcessing ? 'Processing...' : 'Start Scanning'}
                                 </button>
                             )}
                         </div>
@@ -307,6 +417,9 @@ const QRCheckIn = () => {
                                 <li>• Check out when leaving the library</li>
                                 <li>• Hold steady for 2-3 seconds while scanning</li>
                                 <li>• Location services must be enabled</li>
+                                <li>• Camera will automatically turn off after scanning</li>
+                                <li>• Use cancel button to stop scanning anytime</li>
+                                <li>• Each scan will process only once</li>
                             </ul>
                         </div>
                     </motion.div>

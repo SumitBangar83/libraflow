@@ -1,5 +1,5 @@
-import User from "../models/User";
-
+import User from "../models/User.js";
+import jwt from 'jsonwebtoken'
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
@@ -16,7 +16,10 @@ const getAllUsers = async (req, res) => {
 // @route   GET /api/users/profile
 // @access  Private
 const getUserProfile = async (req, res) => {
-    const user = await User.findById(req.user._id).select('-password');
+    const token = req.params;
+
+    const decode = jwt.decode(token.id);
+    const user = await User.findById(decode.id).select('-password');
     if (user) {
         res.json(user);
     } else {

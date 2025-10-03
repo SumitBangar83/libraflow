@@ -281,11 +281,12 @@ const Students = () => {
 
 // Enhanced Attendance Tracking
 const Attendance = () => {
+    const attendance = useSelector((state) => state.attendance.value);
     const [dateRange, setDateRange] = useState('today');
-    const [attendanceData, setAttendanceData] = useState([]);
-
+    const [attendanceData, setAttendanceData] = useState(attendance);
+    console.log(attendance);
     useEffect(() => {
-        fetchAttendanceData();
+        // fetchAttendanceData();
     }, [dateRange]);
 
     const fetchAttendanceData = async () => {
@@ -337,7 +338,7 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {attendanceData.map(record => (
+                            {attendanceData ? attendanceData.map(record => (
                                 <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
                                     <td className="py-3 px-4">
                                         <div>
@@ -363,7 +364,7 @@ const Attendance = () => {
                                         </span>
                                     </td>
                                 </tr>
-                            ))}
+                            )) : ''}
                         </tbody>
                     </table>
                 </div>

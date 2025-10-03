@@ -16,7 +16,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 import Login from './pages/Login';
 import Signup from './pages/SIgnup';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { useEffect } from 'react';
+import axios from 'axios';
+import { userinfo } from './features/userinfo';
+import { attendanceinfo } from './features/attendance';
 
 // Loading component
 
@@ -24,7 +28,37 @@ import { useSelector } from 'react-redux';
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const user = useSelector((state) => state.user.value)
+  const url = import.meta.env.VITE_API_URL;
+  const dispatch = useDispatch();
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const getUser = async () => {
 
+        const result = await axios.get(`${url}users/profile/${token}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
+        }
+        );
+        if (result) {
+          dispatch(userinfo(result.data));
+
+
+        }
+        const result1 = await axios.get(`${url}attendance/live`);
+        console.log(result1.data)
+
+        if (result1.data.success) {
+          dispatch(attendanceinfo(result1.data.data));
+        }
+      }
+      getUser();
+    }
+
+  }, [])
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center h-screen">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-[#84C18B]"></div>
