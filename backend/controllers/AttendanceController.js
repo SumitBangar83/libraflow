@@ -17,7 +17,7 @@ const checkIn = async (req, res) => {
 
         // Check if user is already checked in
 
-        const existingAttendance = await Attendance.findOne({ $and: [{ user: new mongoose.Types.ObjectId(id), checkOutTime: null }] });
+        const existingAttendance = await Attendance.findOne({ user: new mongoose.Types.ObjectId(id), checkOutTime: null });
 
         if (existingAttendance) {
             return res.status(400).json({ message: 'User is already checked in' });
@@ -37,7 +37,7 @@ const checkIn = async (req, res) => {
         const newAttendance = await attendance.save();
         res.status(201).json({ success: true, data: newAttendance });
         const result = await Attendance.find({ user: id });
-       
+
 
     } catch (error) {
         console.log(error)
