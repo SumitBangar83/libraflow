@@ -283,11 +283,6 @@ const Students = () => {
 const Attendance = () => {
     const attendance = useSelector((state) => state.attendance.value);
     const [dateRange, setDateRange] = useState('today');
-    const [attendanceData, setAttendanceData] = useState(attendance);
-    console.log(attendance);
-    useEffect(() => {
-        setAttendanceData(attendance)
-    }, [attendance]);
 
 
     return (
@@ -328,7 +323,7 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {attendanceData ? attendanceData.map(record => (
+                            {attendance ? attendance.map(record => (
                                 <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
                                     <td className="py-3 px-4">
                                         <div>
@@ -337,7 +332,7 @@ const Attendance = () => {
                                         </div>
                                     </td>
                                     <td className="py-3 px-4">{`${new Date(record.checkInTime).getHours()}:${new Date(record.checkInTime).getMinutes()}, Date:${new Date(record.checkInTime).getDate()}/${new Date(record.checkInTime).getMonth()}/${new Date(record.checkInTime).getFullYear()}`}</td>
-                                    <td className="py-3 px-4">{`${new Date(record.checkOutTime).getHours()}:${new Date(record.checkOutTime).getMinutes()}, Date:${new Date(record.checkOutTime).getDate()}/${new Date(record.checkOutTime).getMonth()}/${new Date(record.checkOutTime).getFullYear()}`}</td>
+                                    <td className="py-3 px-4">{record.checkOutTime ? `${new Date(record.checkOutTime).getHours()}:${new Date(record.checkOutTime).getMinutes()}, Date:${new Date(record.checkOutTime).getDate()}/${new Date(record.checkOutTime).getMonth()}/${new Date(record.checkOutTime).getFullYear()}` : ''}</td>
                                     <td className="py-3 px-4">{record.duration}</td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center">
