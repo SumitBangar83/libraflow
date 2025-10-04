@@ -1,12 +1,12 @@
-import {createSlice} from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
 
 const attendanceSlice = createSlice({
     name: 'attendance',
-    initialState:{
+    initialState: {
         value: ''
     },
-    reducers:{
-        attendanceinfo: (state, action) =>{
+    reducers: {
+        attendanceinfo: (state, action) => {
             state.value = action.payload
         }
     }
@@ -14,5 +14,5 @@ const attendanceSlice = createSlice({
 
 })
 
-export const {attendanceinfo} = attendanceSlice.actions;
+export const { attendanceinfo } = attendanceSlice.actions;
 export default attendanceSlice.reducer

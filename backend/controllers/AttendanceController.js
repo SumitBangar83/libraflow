@@ -5,9 +5,9 @@ import mongoose from 'mongoose';
 // @route   POST /api/attendance/checkin
 // @access  Private
 const checkIn = async (req, res) => {
+
     const { id, studentId, action, timeStamp, location, qrData, slot } = req.body;
-    console.log(id)
-    console.log(new mongoose.Types.ObjectId(id))
+
     try {
         {/**  const slot = await Slot.findById(slotId);
         if (!slot || !slot.isActive) {
@@ -43,7 +43,7 @@ const checkIn = async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error.message)
+        console.log(error)
         res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
@@ -54,13 +54,10 @@ const checkIn = async (req, res) => {
 const checkOut = async (req, res) => {
     const id = req.params;
     const { action } = req.body;
+    console.log(id.id)
 
     try {
-        const existingAttendance = await Attendance.findOne({ user: new mongoose.Types.ObjectId(id.id), checkOutTime: null });
-
-        if (existingAttendance) {
-            return res.status(400).json({ message: 'User is already checked in' });
-        }
+       
 
         const attendance = await Attendance.findOne({ user: id.id, checkOutTime: null });
         if (!attendance) {
@@ -75,6 +72,7 @@ const checkOut = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error: error.message });
+        console.log(error.message)
     }
 };
 
@@ -100,7 +98,7 @@ const getAttendanceHistory = async (req, res) => {
 const getLiveAttendance = async (req, res) => {
     try {
         const liveUsers = await Attendance.find();
-       
+
 
         res.json({ success: true, data: liveUsers });
     } catch (error) {

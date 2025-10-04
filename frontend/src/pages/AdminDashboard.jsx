@@ -286,19 +286,9 @@ const Attendance = () => {
     const [attendanceData, setAttendanceData] = useState(attendance);
     console.log(attendance);
     useEffect(() => {
-        // fetchAttendanceData();
-    }, [dateRange]);
+        setAttendanceData(attendance)
+    }, [attendance]);
 
-    const fetchAttendanceData = async () => {
-        // Mock data based on date range
-        const data = await new Promise(resolve => setTimeout(() => resolve([
-            { id: 1, studentName: 'John Doe', studentId: 'STU001', checkin: '10:30 AM', checkout: '12:45 PM', duration: '2h 15m', location: 'Library' },
-            { id: 2, studentName: 'Jane Smith', studentId: 'STU002', checkin: '09:15 AM', checkout: '11:30 AM', duration: '2h 15m', location: 'Library' },
-            { id: 3, studentName: 'Mike Johnson', studentId: 'STU003', checkin: '02:20 PM', checkout: '--', duration: 'Ongoing', location: 'Reading Room' }
-        ]), 500));
-
-        setAttendanceData(data);
-    };
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -342,17 +332,17 @@ const Attendance = () => {
                                 <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
                                     <td className="py-3 px-4">
                                         <div>
-                                            <p className="font-medium">{record.studentName}</p>
+                                            <p className="font-medium">{record.student.email}</p>
                                             <p className="text-sm text-gray-600">{record.studentId}</p>
                                         </div>
                                     </td>
-                                    <td className="py-3 px-4">{record.checkin}</td>
-                                    <td className="py-3 px-4">{record.checkout}</td>
+                                    <td className="py-3 px-4">{`${new Date(record.checkInTime).getHours()}:${new Date(record.checkInTime).getMinutes()}, Date:${new Date(record.checkInTime).getDate()}/${new Date(record.checkInTime).getMonth()}/${new Date(record.checkInTime).getFullYear()}`}</td>
+                                    <td className="py-3 px-4">{`${new Date(record.checkOutTime).getHours()}:${new Date(record.checkOutTime).getMinutes()}, Date:${new Date(record.checkOutTime).getDate()}/${new Date(record.checkOutTime).getMonth()}/${new Date(record.checkOutTime).getFullYear()}`}</td>
                                     <td className="py-3 px-4">{record.duration}</td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center">
                                             <FiMapPin className="text-gray-400 mr-1" size={14} />
-                                            {record.location}
+                                            {record.location.lat}
                                         </div>
                                     </td>
                                     <td className="py-3 px-4">
@@ -360,7 +350,7 @@ const Attendance = () => {
                                             ? 'bg-green-100 text-green-800'
                                             : 'bg-blue-100 text-blue-800'
                                             }`}>
-                                            {record.checkout === '--' ? 'Currently in Library' : 'Completed'}
+                                            {record.checkOutTime === null ? 'Currently in Library' : 'Completed'}
                                         </span>
                                     </td>
                                 </tr>
