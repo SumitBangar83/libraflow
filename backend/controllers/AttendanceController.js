@@ -1,13 +1,17 @@
 import Attendance from '../models/Attendance.js';
 import Slot from '../models/Slot.js';
 import mongoose from 'mongoose';
+import express from 'express';
+
 // @desc    Check-in a user
 // @route   POST /api/attendance/checkin
 // @access  Private
+
+
 const checkIn = async (req, res) => {
 
     const { id, studentId, action, timeStamp, location, qrData, slot } = req.body;
-
+   
     try {
         {/**  const slot = await Slot.findById(slotId);
         if (!slot || !slot.isActive) {
@@ -36,6 +40,7 @@ const checkIn = async (req, res) => {
 
         const newAttendance = await attendance.save();
         res.status(201).json({ success: true, data: newAttendance });
+        
         const result = await Attendance.find({ user: id });
 
 
@@ -94,10 +99,12 @@ const getAttendanceHistory = async (req, res) => {
 // @access  Private/Admin
 const getLiveAttendance = async (req, res) => {
     try {
+        const io = req.io;
         const liveUsers = await Attendance.find();
 
 
         res.json({ success: true, data: liveUsers });
+        io.emit(liveUsers);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }

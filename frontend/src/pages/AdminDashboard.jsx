@@ -25,7 +25,9 @@ import { FaQrcode } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
+import io from 'socket.io-client'
 // Enhanced Sub-pages with real functionality
+const socket = io("https://libraflow-2ji3.onrender.com")
 const DashboardHome = () => {
 
     const [dashboardStats, setDashboardStats] = useState({
@@ -283,6 +285,30 @@ const Students = () => {
 const Attendance = () => {
     const attendance = useSelector((state) => state.attendance.value);
     const [dateRange, setDateRange] = useState('today');
+    const [attendanceRecords, setAttendanceRecords] = useState(attendance);
+    const [isConnected, setIsConnected] = useState(socket.connected);
+
+    // 'useEffect' ka use socket connection aur events manage karne ke liye karein
+    useEffect(() => {
+        // Connection status ke liye listeners
+        socket.on('connect', () => setIsConnected(true));
+        socket.on('disconnect', () => setIsConnected(false));
+
+        // Server se 'attendance_updated' event ko sunein
+        socket.on('attendance_updated', (newRecord) => {
+            console.log('New attendance update received:', newRecord);
+            // State ko update karein (naye record ko list mein sabse upar add karein)
+            setAttendanceRecords(newRecord);
+        });
+
+        // ✅ IMPORTANT: Cleanup function
+        // Jab component unmount ho, to listeners ko hata dein taki memory leak na ho
+        return () => {
+            socket.off('connect');
+            socket.off('disconnect');
+            socket.off('attendance_updated');
+        };
+    }, []); // Empty arra
 
 
     return (
@@ -323,7 +349,7 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {attendance ? attendance.map(record => (
+                            {attendanceRecords ? attendanceRecords.map(record => (
                                 <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
                                     <td className="py-3 px-4">
                                         <div>
