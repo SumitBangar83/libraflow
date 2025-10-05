@@ -105,7 +105,7 @@ const getLiveAttendance = async (req, res) => {
 
 
         res.json({ success: true, data: liveUsers });
-        io.emit(liveUsers);
+        io.emit("attendance_updated", liveUsers);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
         console.log(error.message)

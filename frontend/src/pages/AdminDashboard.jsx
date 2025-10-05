@@ -295,6 +295,7 @@ const Attendance = () => {
         // Connection status ke liye listeners
         socket.on('connect', () => setIsConnected(true));
         socket.on('disconnect', () => setIsConnected(false));
+        console.log(isConnected)
 
         // Server se 'attendance_updated' event ko sunein
         socket.on('attendance_updated', (newRecord) => {
@@ -311,6 +312,9 @@ const Attendance = () => {
             socket.off('attendance_updated');
         };
     }, []); // Empty arra
+    useEffect(() => {
+        console.log("Connection status:", isConnected);
+    }, [isConnected]);
 
 
     return (
