@@ -27,7 +27,9 @@ import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import io from 'socket.io-client'
 // Enhanced Sub-pages with real functionality
-const socket = io("https://libraflow-2ji3.onrender.com")
+const socket = io("https://libraflow-2ji3.onrender.com", {
+    transports: ["websocket"], // ✅ Force websocket
+});
 const DashboardHome = () => {
 
     const [dashboardStats, setDashboardStats] = useState({

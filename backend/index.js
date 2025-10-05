@@ -26,7 +26,13 @@ io.on('connection', (socket) => {
 });
 
 app.use(bodyParser.json())
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://adduceable-charissa-communistic.ngrok-free.dev",
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
 dotenv.config();
 app.use((req, res, next) => {
   req.io = io;
