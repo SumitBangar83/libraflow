@@ -11,7 +11,7 @@ import express from 'express';
 const checkIn = async (req, res) => {
 
     const { id, studentId, action, timeStamp, location, qrData, slot } = req.body;
-   
+
     try {
         {/**  const slot = await Slot.findById(slotId);
         if (!slot || !slot.isActive) {
@@ -40,7 +40,7 @@ const checkIn = async (req, res) => {
 
         const newAttendance = await attendance.save();
         res.status(201).json({ success: true, data: newAttendance });
-        
+
         const result = await Attendance.find({ user: id });
 
 
@@ -100,6 +100,7 @@ const getAttendanceHistory = async (req, res) => {
 const getLiveAttendance = async (req, res) => {
     try {
         const io = req.io;
+        console.log(io);
         const liveUsers = await Attendance.find();
 
 
@@ -107,6 +108,7 @@ const getLiveAttendance = async (req, res) => {
         io.emit(liveUsers);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
+        console.log(error)
     }
 };
 
