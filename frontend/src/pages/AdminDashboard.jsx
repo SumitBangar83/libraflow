@@ -364,7 +364,7 @@ const Attendance = () => {
                                         </div>
                                     </td>
                                     <td className="py-3 px-4">{`${new Date(record.checkInTime).getHours()}:${new Date(record.checkInTime).getMinutes()}, Date:${new Date(record.checkInTime).getDate()}/${new Date(record.checkInTime).getMonth()}/${new Date(record.checkInTime).getFullYear()}`}</td>
-                                    <td className="py-3 px-4">{record.checkOutTime ? `${new Date(record.checkOutTime).getHours()}:${new Date(record.checkOutTime).getMinutes()}, Date:${new Date(record.checkOutTime).getDate()}/${new Date(record.checkOutTime).getMonth()}/${new Date(record.checkOutTime).getFullYear()}` : ''}</td>
+                                    <td className="py-3 px-4">{record.checkOutTime ? `${new Date(record.checkOutTime).getHours()}:${new Date(record.checkOutTime).getMinutes()}, Date:${new Date(record.checkOutTime).getDate()}/${new Date(record.checkOutTime).getMonth() == new Date().getMonth() ? new Date(record.checkOutTime).getMonth() + 1 : new Date(record.checkOutTime).getMonth()}/${new Date(record.checkOutTime).getFullYear()}` : ''}</td>
                                     <td className="py-3 px-4">{record.duration}</td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center">

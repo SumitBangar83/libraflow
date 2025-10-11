@@ -30,8 +30,8 @@ const QRCheckIn = () => {
     const user = useSelector((state) => state.user.value);
 
     const LIBRARY_LOCATION = {
-        lat: 22.7634,
-        lng: 75.8657,
+        lat: 22.756996,
+        lng: 75.869701,
         radius: 100
     };
 
